@@ -1,8 +1,21 @@
 import React from 'react';
 import { StyleSheet, View, ScrollView } from 'react-native';
-import { Card, Title, Paragraph, Surface, IconButton } from 'react-native-paper';
+import { Card, Title, Paragraph, Surface, IconButton, Button } from 'react-native-paper';
+import { removeUserData, removeUserToken } from '../utils/storage';
 
 export default function HomeScreen({ navigation }) {
+  const handleLogout = async () => {
+    try {
+      await Promise.all([
+        removeUserData(),
+        removeUserToken()
+      ]);
+      navigation.replace('Login');
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+  };
+
   const menuItems = [
     {
       title: 'Transaksi Baru',
@@ -33,10 +46,22 @@ export default function HomeScreen({ navigation }) {
   return (
     <ScrollView style={styles.container}>
       <Surface style={styles.header} elevation={2}>
-        <Title style={styles.headerTitle}>Selamat Datang!</Title>
-        <Paragraph style={styles.headerSubtitle}>
-          Pilih menu di bawah untuk memulai
-        </Paragraph>
+        <View style={styles.headerContent}>
+          <View>
+            <Title style={styles.headerTitle}>Selamat Datang!</Title>
+            <Paragraph style={styles.headerSubtitle}>
+              Pilih menu di bawah untuk memulai
+            </Paragraph>
+          </View>
+          <Button 
+            mode="outlined" 
+            icon="logout" 
+            onPress={handleLogout}
+            style={styles.logoutButton}
+          >
+            Logout
+          </Button>
+        </View>
       </Surface>
 
       <View style={styles.menuGrid}>
@@ -74,6 +99,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     marginBottom: 20,
   },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -81,6 +111,9 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 16,
     color: '#666',
+  },
+  logoutButton: {
+    borderColor: '#FF5252',
   },
   menuGrid: {
     padding: 10,

@@ -63,15 +63,17 @@ export default function ReportsScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <View style={styles.summarySection}>
         <Card style={styles.summaryCard}>
           <Card.Content>
-            <Title>Total Penjualan</Title>
+            <Title style={styles.summaryTitle}>Total Penjualan</Title>
             <Paragraph style={styles.totalAmount}>
               Rp {calculateTotalSales().toLocaleString()}
             </Paragraph>
-            <Paragraph>Total Transaksi: {transactions.length}</Paragraph>
+            <Paragraph style={styles.transactionCount}>
+              Total Transaksi: {transactions.length}
+            </Paragraph>
           </Card.Content>
         </Card>
       </View>
@@ -85,39 +87,37 @@ export default function ReportsScreen() {
           style={styles.searchbar}
         />
 
-        <ScrollView>
-          <DataTable>
-            <DataTable.Header>
-              <DataTable.Title>Tanggal</DataTable.Title>
-              <DataTable.Title numeric>Total</DataTable.Title>
-              <DataTable.Title>Customer</DataTable.Title>
-              <DataTable.Title>Detail</DataTable.Title>
-            </DataTable.Header>
+        <DataTable>
+          <DataTable.Header>
+            <DataTable.Title>Tanggal</DataTable.Title>
+            <DataTable.Title numeric>Total</DataTable.Title>
+            <DataTable.Title>Customer</DataTable.Title>
+            <DataTable.Title>Detail</DataTable.Title>
+          </DataTable.Header>
 
-            {transactions
-              .filter(t => 
-                t.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                formatDate(t.date).toLowerCase().includes(searchQuery.toLowerCase())
-              )
-              .map(transaction => (
-                <DataTable.Row key={transaction.id}>
-                  <DataTable.Cell>{formatDate(transaction.date)}</DataTable.Cell>
-                  <DataTable.Cell numeric>
-                    Rp {transaction.total.toLocaleString()}
-                  </DataTable.Cell>
-                  <DataTable.Cell>{transaction.customer_name}</DataTable.Cell>
-                  <DataTable.Cell>
-                    <Button
-                      mode="text"
-                      onPress={() => handleTransactionSelect(transaction)}
-                    >
-                      Lihat
-                    </Button>
-                  </DataTable.Cell>
-                </DataTable.Row>
-              ))}
-          </DataTable>
-        </ScrollView>
+          {transactions
+            .filter(t => 
+              t.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              formatDate(t.date).toLowerCase().includes(searchQuery.toLowerCase())
+            )
+            .map(transaction => (
+              <DataTable.Row key={transaction.id}>
+                <DataTable.Cell>{formatDate(transaction.date)}</DataTable.Cell>
+                <DataTable.Cell numeric>
+                  Rp {transaction.total.toLocaleString()}
+                </DataTable.Cell>
+                <DataTable.Cell>{transaction.customer_name}</DataTable.Cell>
+                <DataTable.Cell>
+                  <Button
+                    mode="text"
+                    onPress={() => handleTransactionSelect(transaction)}
+                  >
+                    Lihat
+                  </Button>
+                </DataTable.Cell>
+              </DataTable.Row>
+            ))}
+        </DataTable>
       </View>
 
       {selectedTransaction && (
@@ -157,7 +157,7 @@ export default function ReportsScreen() {
           </Card.Content>
         </Card>
       )}
-    </View>
+    </ScrollView>
   );
 }
 
@@ -165,7 +165,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
-    padding: 10,
   },
   loadingContainer: {
     flex: 1,
@@ -173,23 +172,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   summarySection: {
-    marginBottom: 20,
+    padding: 10,
+    paddingTop: 20,
   },
   summaryCard: {
     elevation: 4,
   },
+  summaryTitle: {
+    fontSize: 18,
+  },
   totalAmount: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#2196F3',
-    marginVertical: 10,
+    marginTop: 5,
+    marginBottom: 5,
+  },
+  transactionCount: {
+    fontSize: 16,
+    color: '#666',
   },
   transactionsSection: {
     flex: 1,
     backgroundColor: 'white',
     borderRadius: 8,
+    margin: 10,
     padding: 10,
-    marginBottom: 10,
   },
   sectionTitle: {
     marginBottom: 10,
@@ -198,7 +206,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   detailCard: {
-    marginTop: 10,
+    margin: 10,
     elevation: 4,
   },
   totalText: {

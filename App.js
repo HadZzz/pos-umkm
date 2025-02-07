@@ -11,6 +11,7 @@ import HomeScreen from './src/screens/HomeScreen';
 import ProductsScreen from './src/screens/ProductsScreen';
 import TransactionScreen from './src/screens/TransactionScreen';
 import ReportsScreen from './src/screens/ReportsScreen';
+import CustomersScreen from './src/screens/CustomersScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -75,6 +76,11 @@ export default function App() {
               name="Reports" 
               component={ReportsScreen}
               options={{ title: 'Laporan Penjualan' }}
+            />
+            <Stack.Screen 
+              name="Customers" 
+              component={CustomersScreen}
+              options={{ title: 'Manajemen Pelanggan' }}
             />
           </Stack.Navigator>
         </NavigationContainer>
