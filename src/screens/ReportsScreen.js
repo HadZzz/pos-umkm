@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, ScrollView } from 'react-native';
+import { StyleSheet, View, ScrollView, Animated } from 'react-native';
 import {
   Card,
   Title,
@@ -8,6 +8,10 @@ import {
   Searchbar,
   Button,
   ActivityIndicator,
+  Surface,
+  Text,
+  Chip,
+  IconButton,
 } from 'react-native-paper';
 import { getTransactions, getTransactionDetails } from '../utils/database';
 import { getUserData } from '../utils/storage';
@@ -19,9 +23,24 @@ export default function ReportsScreen() {
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [transactionDetails, setTransactionDetails] = useState([]);
   const [userData, setUserData] = useState(null);
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(50));
 
   useEffect(() => {
     loadData();
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 40,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
   const loadData = async () => {
@@ -31,7 +50,6 @@ export default function ReportsScreen() {
         getUserData()
       ]);
       
-      // Jika kasir, hanya tampilkan transaksi hari ini
       if (user.role === 'cashier') {
         const today = new Date().toISOString().split('T')[0];
         const filteredTransactions = transactionsData.filter(t => 
@@ -81,103 +99,140 @@ export default function ReportsScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.summarySection}>
-        <Card style={styles.summaryCard}>
-          <Card.Content>
-            <Title style={styles.summaryTitle}>
-              {userData?.role === 'cashier' ? 'Total Penjualan Hari Ini' : 'Total Semua Penjualan'}
-            </Title>
-            <View style={styles.amountContainer}>
-              <Paragraph style={styles.totalAmount}>
-                Rp {calculateTotalSales().toLocaleString()}
-              </Paragraph>
-            </View>
-            <Paragraph style={styles.transactionCount}>
-              Total Transaksi: {transactions.length}
-            </Paragraph>
-          </Card.Content>
-        </Card>
-      </View>
+      <Animated.View
+        style={{
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        }}
+      >
+        <Surface style={styles.summarySection} elevation={4}>
+          <Card style={styles.summaryCard}>
+            <Card.Content>
+              <View style={styles.summaryHeader}>
+                <IconButton
+                  icon="chart-bar"
+                  size={40}
+                  style={styles.summaryIcon}
+                />
+                <View>
+                  <Title style={styles.summaryTitle}>
+                    {userData?.role === 'cashier' ? 'Total Penjualan Hari Ini' : 'Total Semua Penjualan'}
+                  </Title>
+                  <Paragraph style={styles.summarySubtitle}>
+                    {transactions.length} Transaksi
+                  </Paragraph>
+                </View>
+              </View>
+              <View style={styles.amountContainer}>
+                <Text style={styles.totalAmount}>
+                  Rp {calculateTotalSales().toLocaleString()}
+                </Text>
+              </View>
+            </Card.Content>
+          </Card>
+        </Surface>
 
-      <View style={styles.transactionsSection}>
-        <Title style={styles.sectionTitle}>Riwayat Transaksi</Title>
-        <Searchbar
-          placeholder="Cari transaksi..."
-          onChangeText={setSearchQuery}
-          value={searchQuery}
-          style={styles.searchbar}
-        />
+        <Surface style={styles.transactionsSection} elevation={4}>
+          <Title style={styles.sectionTitle}>Riwayat Transaksi</Title>
+          <Searchbar
+            placeholder="Cari transaksi..."
+            onChangeText={setSearchQuery}
+            value={searchQuery}
+            style={styles.searchbar}
+          />
 
-        <DataTable>
-          <DataTable.Header>
-            <DataTable.Title>Tanggal</DataTable.Title>
-            <DataTable.Title numeric>Total</DataTable.Title>
-            <DataTable.Title>Customer</DataTable.Title>
-            <DataTable.Title>Detail</DataTable.Title>
-          </DataTable.Header>
+          <DataTable>
+            <DataTable.Header>
+              <DataTable.Title>Tanggal</DataTable.Title>
+              <DataTable.Title numeric>Total</DataTable.Title>
+              <DataTable.Title>Customer</DataTable.Title>
+              <DataTable.Title>Detail</DataTable.Title>
+            </DataTable.Header>
 
-          {transactions
-            .filter(t => 
-              t.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              formatDate(t.date).toLowerCase().includes(searchQuery.toLowerCase())
-            )
-            .map(transaction => (
-              <DataTable.Row key={transaction.id}>
-                <DataTable.Cell>{formatDate(transaction.date)}</DataTable.Cell>
-                <DataTable.Cell numeric>
-                  Rp {transaction.total.toLocaleString()}
-                </DataTable.Cell>
-                <DataTable.Cell>{transaction.customer_name}</DataTable.Cell>
-                <DataTable.Cell>
-                  <Button
-                    mode="text"
-                    onPress={() => handleTransactionSelect(transaction)}
-                  >
-                    Lihat
-                  </Button>
-                </DataTable.Cell>
-              </DataTable.Row>
-            ))}
-        </DataTable>
-      </View>
-
-      {selectedTransaction && (
-        <Card style={styles.detailCard}>
-          <Card.Content>
-            <Title>Detail Transaksi</Title>
-            <Paragraph>
-              Tanggal: {formatDate(selectedTransaction.date)}
-            </Paragraph>
-            <Paragraph>
-              Customer: {selectedTransaction.customer_name}
-            </Paragraph>
-            <DataTable>
-              <DataTable.Header>
-                <DataTable.Title>Produk</DataTable.Title>
-                <DataTable.Title numeric>Qty</DataTable.Title>
-                <DataTable.Title numeric>Harga</DataTable.Title>
-                <DataTable.Title numeric>Subtotal</DataTable.Title>
-              </DataTable.Header>
-
-              {transactionDetails.map((item, index) => (
-                <DataTable.Row key={index}>
-                  <DataTable.Cell>{item.product_name}</DataTable.Cell>
-                  <DataTable.Cell numeric>{item.quantity}</DataTable.Cell>
+            {transactions
+              .filter(t => 
+                t.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                formatDate(t.date).toLowerCase().includes(searchQuery.toLowerCase())
+              )
+              .map(transaction => (
+                <DataTable.Row key={transaction.id}>
+                  <DataTable.Cell>{formatDate(transaction.date)}</DataTable.Cell>
                   <DataTable.Cell numeric>
-                    Rp {item.price_per_item.toLocaleString()}
+                    <Text style={styles.transactionAmount}>
+                      Rp {transaction.total.toLocaleString()}
+                    </Text>
                   </DataTable.Cell>
-                  <DataTable.Cell numeric>
-                    Rp {(item.quantity * item.price_per_item).toLocaleString()}
+                  <DataTable.Cell>
+                    <Chip icon="account">
+                      {transaction.customer_name}
+                    </Chip>
+                  </DataTable.Cell>
+                  <DataTable.Cell>
+                    <Button
+                      mode="contained-tonal"
+                      onPress={() => handleTransactionSelect(transaction)}
+                      compact
+                    >
+                      Lihat
+                    </Button>
                   </DataTable.Cell>
                 </DataTable.Row>
               ))}
-            </DataTable>
-            <Title style={styles.totalText}>
-              Total: Rp {selectedTransaction.total.toLocaleString()}
-            </Title>
-          </Card.Content>
-        </Card>
-      )}
+          </DataTable>
+        </Surface>
+
+        {selectedTransaction && (
+          <Surface style={styles.detailCard} elevation={4}>
+            <Card.Content>
+              <View style={styles.detailHeader}>
+                <Title>Detail Transaksi</Title>
+                <IconButton
+                  icon="close"
+                  size={24}
+                  onPress={() => setSelectedTransaction(null)}
+                />
+              </View>
+              <View style={styles.detailInfo}>
+                <Chip icon="calendar" style={styles.detailChip}>
+                  {formatDate(selectedTransaction.date)}
+                </Chip>
+                <Chip icon="account" style={styles.detailChip}>
+                  {selectedTransaction.customer_name}
+                </Chip>
+              </View>
+              <DataTable>
+                <DataTable.Header>
+                  <DataTable.Title>Produk</DataTable.Title>
+                  <DataTable.Title numeric>Qty</DataTable.Title>
+                  <DataTable.Title numeric>Harga</DataTable.Title>
+                  <DataTable.Title numeric>Subtotal</DataTable.Title>
+                </DataTable.Header>
+
+                {transactionDetails.map((item, index) => (
+                  <DataTable.Row key={index}>
+                    <DataTable.Cell>{item.product_name}</DataTable.Cell>
+                    <DataTable.Cell numeric>{item.quantity}</DataTable.Cell>
+                    <DataTable.Cell numeric>
+                      Rp {item.price_per_item.toLocaleString()}
+                    </DataTable.Cell>
+                    <DataTable.Cell numeric>
+                      <Text style={styles.subtotalAmount}>
+                        Rp {(item.quantity * item.price_per_item).toLocaleString()}
+                      </Text>
+                    </DataTable.Cell>
+                  </DataTable.Row>
+                ))}
+              </DataTable>
+              <View style={styles.detailTotal}>
+                <Title>Total</Title>
+                <Title style={styles.detailTotalAmount}>
+                  Rp {selectedTransaction.total.toLocaleString()}
+                </Title>
+              </View>
+            </Card.Content>
+          </Surface>
+        )}
+      </Animated.View>
     </ScrollView>
   );
 }
@@ -193,52 +248,87 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   summarySection: {
-    padding: 15,
-    paddingTop: 25,
+    margin: 15,
+    borderRadius: 15,
+    overflow: 'hidden',
   },
   summaryCard: {
-    elevation: 4,
-    padding: 15,
+    backgroundColor: '#2196F3',
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  summaryIcon: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginRight: 15,
   },
   summaryTitle: {
-    fontSize: 18,
-    marginBottom: 15,
+    color: 'white',
+    fontSize: 20,
+    marginBottom: 5,
+  },
+  summarySubtitle: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 14,
   },
   amountContainer: {
-    minHeight: 50,
-    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
   },
   totalAmount: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
-    color: '#2196F3',
-    paddingVertical: 15,
-  },
-  transactionCount: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 10,
+    color: 'white',
   },
   transactionsSection: {
-    flex: 1,
-    backgroundColor: 'white',
-    borderRadius: 8,
     margin: 15,
     padding: 15,
+    borderRadius: 15,
   },
   sectionTitle: {
     marginBottom: 15,
+    fontSize: 20,
   },
   searchbar: {
     marginBottom: 15,
+    elevation: 2,
+  },
+  transactionAmount: {
+    color: '#2196F3',
+    fontWeight: 'bold',
   },
   detailCard: {
     margin: 15,
-    elevation: 4,
+    borderRadius: 15,
   },
-  totalText: {
-    marginTop: 15,
-    textAlign: 'right',
-    fontSize: 20,
+  detailHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  detailInfo: {
+    flexDirection: 'row',
+    marginBottom: 20,
+  },
+  detailChip: {
+    marginRight: 10,
+  },
+  subtotalAmount: {
+    color: '#666',
+  },
+  detailTotal: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  detailTotalAmount: {
+    color: '#2196F3',
   },
 }); 

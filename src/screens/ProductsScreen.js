@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, FlatList, Alert } from 'react-native';
+import { StyleSheet, View, FlatList, Alert, Animated } from 'react-native';
 import { 
   List, 
   FAB, 
@@ -11,6 +11,9 @@ import {
   TextInput,
   ActivityIndicator,
   Menu,
+  Surface,
+  Text,
+  Chip,
 } from 'react-native-paper';
 import { 
   getProducts, 
@@ -29,6 +32,18 @@ const PRODUCT_CATEGORIES = [
   'Lainnya',
 ];
 
+const getCategoryColor = (category) => {
+  const colors = {
+    'Makanan': '#4CAF50',
+    'Minuman': '#2196F3',
+    'Snack': '#FF9800',
+    'Alat Tulis': '#9C27B0',
+    'Kebutuhan Pokok': '#F44336',
+    'Lainnya': '#607D8B',
+  };
+  return colors[category] || colors['Lainnya'];
+};
+
 export default function ProductsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [visible, setVisible] = useState(false);
@@ -42,9 +57,15 @@ export default function ProductsScreen() {
     category: '',
   });
   const [categoryMenuVisible, setCategoryMenuVisible] = useState(false);
+  const [fadeAnim] = useState(new Animated.Value(0));
 
   useEffect(() => {
     loadProducts();
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
   }, []);
 
   const loadProducts = async () => {
@@ -151,18 +172,58 @@ export default function ProductsScreen() {
     );
   };
 
-  const renderItem = ({ item }) => (
-    <List.Item
-      title={item.name}
-      description={`Stok: ${item.stock} | Kategori: ${item.category || '-'}`}
-      right={props => (
-        <View style={styles.rightContent}>
-          <List.Subheader>Rp {item.price.toLocaleString()}</List.Subheader>
-          <IconButton icon="pencil" onPress={() => showDialog(item)} />
-          <IconButton icon="delete" onPress={() => handleDeleteProduct(item.id)} />
+  const renderItem = ({ item, index }) => (
+    <Animated.View
+      style={{
+        opacity: fadeAnim,
+        transform: [{
+          translateY: fadeAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [50, 0]
+          })
+        }]
+      }}
+    >
+      <Surface style={styles.productCard} elevation={2}>
+        <View style={styles.productContent}>
+          <View style={styles.productInfo}>
+            <Text style={styles.productName}>{item.name}</Text>
+            <View style={styles.productDetails}>
+              <Chip 
+                style={[styles.categoryChip, { backgroundColor: getCategoryColor(item.category) }]}
+                textStyle={{ color: 'white' }}
+              >
+                {item.category || 'Lainnya'}
+              </Chip>
+              <Text style={styles.stockText}>Stok: {item.stock}</Text>
+            </View>
+          </View>
+          <View style={styles.productActions}>
+            <Text style={styles.priceText}>
+              Rp {item.price.toLocaleString()}
+            </Text>
+            <View style={styles.actionButtons}>
+              <IconButton 
+                icon="pencil" 
+                mode="contained" 
+                containerColor="#2196F3"
+                iconColor="white"
+                size={20}
+                onPress={() => showDialog(item)}
+              />
+              <IconButton 
+                icon="delete" 
+                mode="contained"
+                containerColor="#FF5252"
+                iconColor="white"
+                size={20}
+                onPress={() => handleDeleteProduct(item.id)}
+              />
+            </View>
+          </View>
         </View>
-      )}
-    />
+      </Surface>
+    </Animated.View>
   );
 
   if (loading) {
@@ -189,6 +250,7 @@ export default function ProductsScreen() {
           )}
           renderItem={renderItem}
           keyExtractor={item => item.id.toString()}
+          contentContainerStyle={styles.listContainer}
         />
 
         <Portal>
@@ -202,6 +264,7 @@ export default function ProductsScreen() {
                 value={newProduct.name}
                 onChangeText={text => setNewProduct({ ...newProduct, name: text })}
                 style={styles.input}
+                mode="outlined"
               />
               <TextInput
                 label="Harga"
@@ -209,6 +272,8 @@ export default function ProductsScreen() {
                 onChangeText={text => setNewProduct({ ...newProduct, price: text })}
                 keyboardType="numeric"
                 style={styles.input}
+                mode="outlined"
+                left={<TextInput.Affix text="Rp" />}
               />
               <TextInput
                 label="Stok"
@@ -216,6 +281,7 @@ export default function ProductsScreen() {
                 onChangeText={text => setNewProduct({ ...newProduct, stock: text })}
                 keyboardType="numeric"
                 style={styles.input}
+                mode="outlined"
               />
               <Menu
                 visible={categoryMenuVisible}
@@ -226,6 +292,7 @@ export default function ProductsScreen() {
                     value={newProduct.category}
                     onFocus={() => setCategoryMenuVisible(true)}
                     style={styles.input}
+                    mode="outlined"
                     right={<TextInput.Icon icon="menu-down" />}
                   />
                 }
@@ -244,7 +311,9 @@ export default function ProductsScreen() {
             </Dialog.Content>
             <Dialog.Actions>
               <Button onPress={hideDialog}>Batal</Button>
-              <Button onPress={handleSaveProduct}>Simpan</Button>
+              <Button mode="contained" onPress={handleSaveProduct}>
+                Simpan
+              </Button>
             </Dialog.Actions>
           </Dialog>
         </Portal>
@@ -273,9 +342,50 @@ const styles = StyleSheet.create({
     margin: 10,
     elevation: 2,
   },
-  rightContent: {
+  listContainer: {
+    padding: 10,
+  },
+  productCard: {
+    marginBottom: 10,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  productContent: {
+    padding: 16,
+  },
+  productInfo: {
+    flex: 1,
+  },
+  productName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  productDetails: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 8,
+  },
+  categoryChip: {
+    marginRight: 8,
+  },
+  stockText: {
+    color: '#666',
+  },
+  productActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  priceText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2196F3',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 8,
   },
   fab: {
     position: 'absolute',
@@ -285,5 +395,6 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 10,
+    backgroundColor: 'white',
   },
 }); 

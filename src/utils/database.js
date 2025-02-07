@@ -94,6 +94,51 @@ export const initDatabase = () => {
           reject(error);
         }
       );
+
+      // Tabel Customers
+      tx.executeSql(
+        `CREATE TABLE IF NOT EXISTS customers (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          phone TEXT,
+          email TEXT,
+          address TEXT,
+          member_code TEXT UNIQUE,
+          points INTEGER DEFAULT 0,
+          level TEXT DEFAULT 'regular',
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )`,
+        [],
+        () => {
+          console.log('Customers table created successfully');
+        },
+        (_, error) => {
+          console.error('Error creating customers table:', error);
+          reject(error);
+        }
+      );
+
+      // Tabel Customer Transactions
+      tx.executeSql(
+        `CREATE TABLE IF NOT EXISTS customer_transactions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          customer_id INTEGER,
+          transaction_id INTEGER,
+          points_earned INTEGER DEFAULT 0,
+          points_used INTEGER DEFAULT 0,
+          FOREIGN KEY (customer_id) REFERENCES customers (id),
+          FOREIGN KEY (transaction_id) REFERENCES transactions (id)
+        )`,
+        [],
+        () => {
+          console.log('Customer transactions table created successfully');
+        },
+        (_, error) => {
+          console.error('Error creating customer transactions table:', error);
+          reject(error);
+        }
+      );
     });
   });
 };
@@ -297,6 +342,140 @@ export const getTransactionDetails = (transactionId) => {
          JOIN products p ON ti.product_id = p.id
          WHERE ti.transaction_id = ?`,
         [transactionId],
+        (_, { rows: { _array } }) => resolve(_array),
+        (_, error) => reject(error)
+      );
+    });
+  });
+};
+
+// Customer management functions
+export const getCustomers = () => {
+  return new Promise((resolve, reject) => {
+    db.transaction(tx => {
+      tx.executeSql(
+        `SELECT c.*, 
+         (SELECT COUNT(*) FROM customer_transactions ct WHERE ct.customer_id = c.id) as transaction_count,
+         (SELECT SUM(t.total) FROM transactions t 
+          JOIN customer_transactions ct ON t.id = ct.transaction_id 
+          WHERE ct.customer_id = c.id) as total_spent
+         FROM customers c
+         ORDER BY c.created_at DESC`,
+        [],
+        (_, { rows: { _array } }) => resolve(_array),
+        (_, error) => reject(error)
+      );
+    });
+  });
+};
+
+export const getCustomerById = (id) => {
+  return new Promise((resolve, reject) => {
+    db.transaction(tx => {
+      tx.executeSql(
+        `SELECT * FROM customers WHERE id = ?`,
+        [id],
+        (_, { rows: { _array } }) => resolve(_array[0]),
+        (_, error) => reject(error)
+      );
+    });
+  });
+};
+
+export const addCustomer = (customer) => {
+  return new Promise((resolve, reject) => {
+    db.transaction(tx => {
+      tx.executeSql(
+        `INSERT INTO customers (name, phone, email, address, member_code) 
+         VALUES (?, ?, ?, ?, ?)`,
+        [
+          customer.name,
+          customer.phone,
+          customer.email,
+          customer.address,
+          customer.member_code || `MEM${Date.now()}`
+        ],
+        (_, { insertId }) => resolve(insertId),
+        (_, error) => reject(error)
+      );
+    });
+  });
+};
+
+export const updateCustomer = (customer) => {
+  return new Promise((resolve, reject) => {
+    db.transaction(tx => {
+      tx.executeSql(
+        `UPDATE customers 
+         SET name = ?, phone = ?, email = ?, address = ?, 
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [
+          customer.name,
+          customer.phone,
+          customer.email,
+          customer.address,
+          customer.id
+        ],
+        () => resolve(),
+        (_, error) => reject(error)
+      );
+    });
+  });
+};
+
+export const deleteCustomer = (id) => {
+  return new Promise((resolve, reject) => {
+    db.transaction(tx => {
+      tx.executeSql(
+        'DELETE FROM customers WHERE id = ?',
+        [id],
+        () => resolve(),
+        (_, error) => reject(error)
+      );
+    });
+  });
+};
+
+export const updateCustomerPoints = (customerId, points, transactionId) => {
+  return new Promise((resolve, reject) => {
+    db.transaction(tx => {
+      tx.executeSql(
+        `UPDATE customers 
+         SET points = points + ?,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [points, customerId],
+        () => {
+          if (transactionId) {
+            tx.executeSql(
+              `INSERT INTO customer_transactions 
+               (customer_id, transaction_id, points_earned)
+               VALUES (?, ?, ?)`,
+              [customerId, transactionId, points],
+              () => resolve(),
+              (_, error) => reject(error)
+            );
+          } else {
+            resolve();
+          }
+        },
+        (_, error) => reject(error)
+      );
+    });
+  });
+};
+
+export const getCustomerTransactions = (customerId) => {
+  return new Promise((resolve, reject) => {
+    db.transaction(tx => {
+      tx.executeSql(
+        `SELECT t.*, ct.points_earned, ct.points_used
+         FROM transactions t
+         JOIN customer_transactions ct ON t.id = ct.transaction_id
+         WHERE ct.customer_id = ?
+         ORDER BY t.date DESC`,
+        [customerId],
         (_, { rows: { _array } }) => resolve(_array),
         (_, error) => reject(error)
       );

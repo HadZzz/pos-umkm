@@ -1,21 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Image, Alert } from 'react-native';
+import { StyleSheet, View, Image, Alert, Animated, Dimensions } from 'react-native';
 import { TextInput, Button, Text, Surface } from 'react-native-paper';
 import { storeUserData, getUserData, storeUserToken } from '../utils/storage';
 
-// Dummy users untuk demo
 const USERS = [
   { username: 'admin', password: 'admin123', role: 'admin' },
   { username: 'kasir', password: 'kasir123', role: 'kasir' },
 ];
 
+const { width } = Dimensions.get('window');
+
 export default function LoginScreen({ navigation }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(50));
 
   useEffect(() => {
     checkExistingLogin();
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 40,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
   const checkExistingLogin = async () => {
@@ -42,10 +58,10 @@ export default function LoginScreen({ navigation }) {
       );
 
       if (user) {
-        // Simpan data user dan token
         const userData = {
           username: user.username,
           role: user.role,
+          name: user.username === 'admin' ? 'Administrator' : 'Kasir',
           loginTime: new Date().toISOString(),
         };
         
@@ -68,44 +84,73 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Surface style={styles.surface} elevation={4}>
-        <Text style={styles.title}>POS UMKM</Text>
-        <Text style={styles.subtitle}>Point of Sale</Text>
-        
-        <TextInput
-          label="Username"
-          value={username}
-          onChangeText={setUsername}
-          style={styles.input}
-          mode="outlined"
-          autoCapitalize="none"
+      <Animated.View 
+        style={[
+          styles.logoContainer,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          }
+        ]}
+      >
+        <Image
+          source={require('../../assets/icon.png')}
+          style={styles.logo}
+          resizeMode="contain"
         />
-        
-        <TextInput
-          label="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          style={styles.input}
-          mode="outlined"
-        />
-        
-        <Button
-          mode="contained"
-          onPress={handleLogin}
-          style={styles.button}
-          loading={loading}
-          disabled={loading}
-        >
-          Login
-        </Button>
+      </Animated.View>
 
-        <Text style={styles.hint}>
-          Demo credentials:{'\n'}
-          admin / admin123{'\n'}
-          kasir / kasir123
-        </Text>
-      </Surface>
+      <Animated.View 
+        style={[
+          styles.formContainer,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          }
+        ]}
+      >
+        <Surface style={styles.surface} elevation={4}>
+          <Text style={styles.title}>POS UMKM</Text>
+          <Text style={styles.subtitle}>Point of Sale</Text>
+          
+          <TextInput
+            label="Username"
+            value={username}
+            onChangeText={setUsername}
+            style={styles.input}
+            mode="outlined"
+            autoCapitalize="none"
+            left={<TextInput.Icon icon="account" />}
+          />
+          
+          <TextInput
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            style={styles.input}
+            mode="outlined"
+            left={<TextInput.Icon icon="lock" />}
+            right={<TextInput.Icon icon="eye" />}
+          />
+          
+          <Button
+            mode="contained"
+            onPress={handleLogin}
+            style={styles.button}
+            loading={loading}
+            disabled={loading}
+          >
+            Login
+          </Button>
+
+          <Text style={styles.hint}>
+            Demo credentials:{'\n'}
+            admin / admin123{'\n'}
+            kasir / kasir123
+          </Text>
+        </Surface>
+      </Animated.View>
     </View>
   );
 }
@@ -113,13 +158,24 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#2196F3',
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginTop: 60,
+    marginBottom: 20,
+  },
+  logo: {
+    width: width * 0.4,
+    height: width * 0.4,
+  },
+  formContainer: {
+    flex: 1,
+    paddingHorizontal: 20,
   },
   surface: {
     padding: 20,
-    borderRadius: 10,
+    borderRadius: 15,
     backgroundColor: 'white',
   },
   title: {
@@ -127,6 +183,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 5,
+    color: '#2196F3',
   },
   subtitle: {
     fontSize: 16,
@@ -136,10 +193,12 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 12,
+    backgroundColor: 'white',
   },
   button: {
     marginTop: 10,
     paddingVertical: 6,
+    borderRadius: 30,
   },
   hint: {
     marginTop: 20,
@@ -147,4 +206,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
-}); 
+});

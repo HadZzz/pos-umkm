@@ -44,6 +44,13 @@ export default function HomeScreen({ navigation }) {
 
   const adminMenuItems = [
     {
+      title: 'Dashboard',
+      icon: 'view-dashboard',
+      screen: 'Dashboard',
+      description: 'Lihat statistik dan analitik',
+      color: '#673AB7',
+    },
+    {
       title: 'Transaksi Baru',
       icon: 'cart',
       screen: 'Transaction',
@@ -58,18 +65,25 @@ export default function HomeScreen({ navigation }) {
       color: '#2196F3',
     },
     {
+      title: 'Pelanggan',
+      icon: 'account-group',
+      screen: 'Customers',
+      description: 'Kelola data pelanggan',
+      color: '#9C27B0',
+    },
+    {
       title: 'Laporan',
       icon: 'chart-bar',
       screen: 'Reports',
       description: 'Lihat laporan penjualan',
-      color: '#9C27B0',
+      color: '#FF9800',
     },
     {
-      title: 'Pengguna & Pelanggan',
-      icon: 'account-group',
+      title: 'Pengguna',
+      icon: 'account-key',
       screen: 'Users',
-      description: 'Kelola data pengguna dan pelanggan',
-      color: '#FF9800',
+      description: 'Kelola data pengguna',
+      color: '#795548',
     },
   ];
 
@@ -82,11 +96,18 @@ export default function HomeScreen({ navigation }) {
       color: '#4CAF50',
     },
     {
+      title: 'Pelanggan',
+      icon: 'account-group',
+      screen: 'Customers',
+      description: 'Kelola data pelanggan',
+      color: '#9C27B0',
+    },
+    {
       title: 'Laporan',
       icon: 'chart-bar',
       screen: 'Reports',
       description: 'Lihat laporan penjualan',
-      color: '#9C27B0',
+      color: '#FF9800',
     },
   ];
 
