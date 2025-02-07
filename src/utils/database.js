@@ -106,6 +106,7 @@ export const initDatabase = () => {
           member_code TEXT UNIQUE,
           points INTEGER DEFAULT 0,
           level TEXT DEFAULT 'regular',
+          total_spent REAL DEFAULT 0,
           created_at TEXT DEFAULT CURRENT_TIMESTAMP,
           updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         )`,
@@ -437,27 +438,37 @@ export const deleteCustomer = (id) => {
   });
 };
 
-export const updateCustomerPoints = (customerId, points, transactionId) => {
+export const updateCustomerAfterTransaction = (customerId, transactionTotal, pointsEarned) => {
   return new Promise((resolve, reject) => {
     db.transaction(tx => {
       tx.executeSql(
         `UPDATE customers 
          SET points = points + ?,
+             total_spent = total_spent + ?,
              updated_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
-        [points, customerId],
-        () => {
-          if (transactionId) {
-            tx.executeSql(
-              `INSERT INTO customer_transactions 
-               (customer_id, transaction_id, points_earned)
-               VALUES (?, ?, ?)`,
-              [customerId, transactionId, points],
-              () => resolve(),
-              (_, error) => reject(error)
-            );
+        [pointsEarned, transactionTotal, customerId],
+        () => resolve(),
+        (_, error) => reject(error)
+      );
+    });
+  });
+};
+
+export const useCustomerPoints = (customerId, pointsToUse) => {
+  return new Promise((resolve, reject) => {
+    db.transaction(tx => {
+      tx.executeSql(
+        `UPDATE customers 
+         SET points = points - ?,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = ? AND points >= ?`,
+        [pointsToUse, customerId, pointsToUse],
+        (_, { rowsAffected }) => {
+          if (rowsAffected > 0) {
+            resolve(true);
           } else {
-            resolve();
+            resolve(false);
           }
         },
         (_, error) => reject(error)

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, FlatList, Alert } from 'react-native';
+import { StyleSheet, View, FlatList, Alert, ScrollView } from 'react-native';
 import {
   List,
   FAB,
@@ -10,35 +10,55 @@ import {
   Button,
   TextInput,
   ActivityIndicator,
-  Menu,
   SegmentedButtons,
+  Surface,
   Text,
+  Card,
+  Title,
+  Paragraph,
+  Divider,
+  DataTable,
 } from 'react-native-paper';
 import { getUsers, addUser, updateUser, deleteUser } from '../utils/database';
 import AccessControl from '../components/AccessControl';
 
 const USER_ROLES = [
   { value: 'admin', label: 'Admin' },
-  { value: 'cashier', label: 'Kasir' },
+  { value: 'kasir', label: 'Kasir' },
 ];
 
-const TABS = [
-  { value: 'users', label: 'Pengguna' },
-  { value: 'customers', label: 'Pelanggan' },
-];
+const USER_PERMISSIONS = {
+  admin: [
+    'manage_users',
+    'manage_products',
+    'manage_customers',
+    'view_reports',
+    'manage_settings',
+    'process_transactions',
+  ],
+  kasir: [
+    'process_transactions',
+    'view_customers',
+    'view_products',
+  ],
+};
 
 export default function UsersScreen() {
-  const [activeTab, setActiveTab] = useState('users');
   const [searchQuery, setSearchQuery] = useState('');
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState([]);
   const [editingUser, setEditingUser] = useState(null);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [showUserLogs, setShowUserLogs] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
   const [newUser, setNewUser] = useState({
     username: '',
     password: '',
     name: '',
-    role: 'cashier',
+    role: 'kasir',
+    permissions: [],
   });
 
   useEffect(() => {
@@ -65,6 +85,7 @@ export default function UsersScreen() {
         password: '',
         name: user.name,
         role: user.role,
+        permissions: user.permissions || USER_PERMISSIONS[user.role],
       });
     } else {
       setEditingUser(null);
@@ -72,7 +93,8 @@ export default function UsersScreen() {
         username: '',
         password: '',
         name: '',
-        role: 'cashier',
+        role: 'kasir',
+        permissions: USER_PERMISSIONS['kasir'],
       });
     }
     setVisible(true);
@@ -85,7 +107,8 @@ export default function UsersScreen() {
       username: '',
       password: '',
       name: '',
-      role: 'cashier',
+      role: 'kasir',
+      permissions: [],
     });
   };
 
@@ -100,6 +123,7 @@ export default function UsersScreen() {
         username: newUser.username,
         name: newUser.name,
         role: newUser.role,
+        permissions: newUser.permissions,
       };
 
       if (editingUser) {
@@ -153,19 +177,102 @@ export default function UsersScreen() {
     );
   };
 
-  const renderItem = ({ item }) => (
-    <List.Item
-      title={item.name}
-      description={`Username: ${item.username} | Role: ${item.role}`}
-      right={props => (
-        <View style={styles.rightContent}>
-          <IconButton icon="pencil" onPress={() => showDialog(item)} />
-          {item.username !== 'admin' && (
-            <IconButton icon="delete" onPress={() => handleDeleteUser(item.id)} />
-          )}
-        </View>
-      )}
-    />
+  const handleResetPassword = async () => {
+    try {
+      if (!newPassword) {
+        Alert.alert('Error', 'Password baru harus diisi');
+        return;
+      }
+
+      await updateUser({
+        id: selectedUser.id,
+        password: newPassword,
+      });
+
+      setShowResetPassword(false);
+      setNewPassword('');
+      Alert.alert('Sukses', 'Password berhasil direset');
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      Alert.alert('Error', 'Gagal mereset password');
+    }
+  };
+
+  const showUserDetails = (user) => {
+    setSelectedUser(user);
+    setShowUserLogs(true);
+  };
+
+  const renderUserItem = ({ item }) => (
+    <Surface style={styles.userCard} elevation={2}>
+      <Card>
+        <Card.Content>
+          <View style={styles.userHeader}>
+            <View>
+              <Title>{item.name}</Title>
+              <Paragraph style={styles.userInfo}>
+                Username: {item.username}
+              </Paragraph>
+              <Paragraph style={styles.userInfo}>
+                Role: {item.role}
+              </Paragraph>
+            </View>
+            <View style={styles.userActions}>
+              <IconButton
+                icon="key"
+                mode="contained"
+                containerColor="#4CAF50"
+                iconColor="white"
+                size={20}
+                onPress={() => {
+                  setSelectedUser(item);
+                  setShowResetPassword(true);
+                }}
+              />
+              <IconButton
+                icon="history"
+                mode="contained"
+                containerColor="#2196F3"
+                iconColor="white"
+                size={20}
+                onPress={() => showUserDetails(item)}
+              />
+              <IconButton
+                icon="pencil"
+                mode="contained"
+                containerColor="#FF9800"
+                iconColor="white"
+                size={20}
+                onPress={() => showDialog(item)}
+              />
+              {item.username !== 'admin' && (
+                <IconButton
+                  icon="delete"
+                  mode="contained"
+                  containerColor="#F44336"
+                  iconColor="white"
+                  size={20}
+                  onPress={() => handleDeleteUser(item.id)}
+                />
+              )}
+            </View>
+          </View>
+
+          <Divider style={styles.divider} />
+
+          <View style={styles.permissionsContainer}>
+            <Text style={styles.permissionsTitle}>Hak Akses:</Text>
+            <View style={styles.permissionsList}>
+              {(item.permissions || USER_PERMISSIONS[item.role]).map((permission, index) => (
+                <Text key={index} style={styles.permission}>
+                  • {permission.replace(/_/g, ' ').toUpperCase()}
+                </Text>
+              ))}
+            </View>
+          </View>
+        </Card.Content>
+      </Card>
+    </Surface>
   );
 
   if (loading) {
@@ -179,83 +286,120 @@ export default function UsersScreen() {
   return (
     <AccessControl allowedRoles={['admin']}>
       <View style={styles.container}>
-        <SegmentedButtons
-          value={activeTab}
-          onValueChange={setActiveTab}
-          buttons={TABS}
-          style={styles.tabs}
+        <Searchbar
+          placeholder="Cari pengguna..."
+          onChangeText={setSearchQuery}
+          value={searchQuery}
+          style={styles.searchbar}
         />
 
-        {activeTab === 'users' ? (
-          <>
-            <Searchbar
-              placeholder="Cari pengguna..."
-              onChangeText={setSearchQuery}
-              value={searchQuery}
-              style={styles.searchbar}
-            />
+        <FlatList
+          data={users.filter(user =>
+            user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            user.username.toLowerCase().includes(searchQuery.toLowerCase())
+          )}
+          renderItem={renderUserItem}
+          keyExtractor={item => item.id.toString()}
+          contentContainerStyle={styles.listContainer}
+        />
 
-            <FlatList
-              data={users.filter(user =>
-                user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                user.username.toLowerCase().includes(searchQuery.toLowerCase())
+        <Portal>
+          <Dialog visible={visible} onDismiss={hideDialog}>
+            <Dialog.Title>
+              {editingUser ? 'Edit Pengguna' : 'Tambah Pengguna Baru'}
+            </Dialog.Title>
+            <Dialog.Content>
+              {!editingUser && (
+                <TextInput
+                  label="Username"
+                  value={newUser.username}
+                  onChangeText={text => setNewUser({ ...newUser, username: text })}
+                  style={styles.input}
+                  mode="outlined"
+                />
               )}
-              renderItem={renderItem}
-              keyExtractor={item => item.id.toString()}
-            />
+              <TextInput
+                label="Nama"
+                value={newUser.name}
+                onChangeText={text => setNewUser({ ...newUser, name: text })}
+                style={styles.input}
+                mode="outlined"
+              />
+              <TextInput
+                label={editingUser ? "Password Baru (kosongkan jika tidak diubah)" : "Password"}
+                value={newUser.password}
+                onChangeText={text => setNewUser({ ...newUser, password: text })}
+                secureTextEntry
+                style={styles.input}
+                mode="outlined"
+              />
+              <SegmentedButtons
+                value={newUser.role}
+                onValueChange={value => {
+                  setNewUser({
+                    ...newUser,
+                    role: value,
+                    permissions: USER_PERMISSIONS[value],
+                  });
+                }}
+                buttons={USER_ROLES}
+                style={styles.roleButtons}
+              />
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={hideDialog}>Batal</Button>
+              <Button mode="contained" onPress={handleSaveUser}>
+                Simpan
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
 
-            <Portal>
-              <Dialog visible={visible} onDismiss={hideDialog}>
-                <Dialog.Title>
-                  {editingUser ? 'Edit Pengguna' : 'Tambah Pengguna Baru'}
-                </Dialog.Title>
-                <Dialog.Content>
-                  {!editingUser && (
-                    <TextInput
-                      label="Username"
-                      value={newUser.username}
-                      onChangeText={text => setNewUser({ ...newUser, username: text })}
-                      style={styles.input}
-                    />
-                  )}
-                  <TextInput
-                    label="Nama"
-                    value={newUser.name}
-                    onChangeText={text => setNewUser({ ...newUser, name: text })}
-                    style={styles.input}
-                  />
-                  <TextInput
-                    label={editingUser ? "Password Baru (kosongkan jika tidak diubah)" : "Password"}
-                    value={newUser.password}
-                    onChangeText={text => setNewUser({ ...newUser, password: text })}
-                    secureTextEntry
-                    style={styles.input}
-                  />
-                  <SegmentedButtons
-                    value={newUser.role}
-                    onValueChange={value => setNewUser({ ...newUser, role: value })}
-                    buttons={USER_ROLES}
-                    style={styles.roleButtons}
-                  />
-                </Dialog.Content>
-                <Dialog.Actions>
-                  <Button onPress={hideDialog}>Batal</Button>
-                  <Button onPress={handleSaveUser}>Simpan</Button>
-                </Dialog.Actions>
-              </Dialog>
-            </Portal>
+          <Dialog visible={showResetPassword} onDismiss={() => setShowResetPassword(false)}>
+            <Dialog.Title>Reset Password</Dialog.Title>
+            <Dialog.Content>
+              <TextInput
+                label="Password Baru"
+                value={newPassword}
+                onChangeText={setNewPassword}
+                secureTextEntry
+                style={styles.input}
+                mode="outlined"
+              />
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setShowResetPassword(false)}>Batal</Button>
+              <Button mode="contained" onPress={handleResetPassword}>
+                Reset
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
 
-            <FAB
-              style={styles.fab}
-              icon="plus"
-              onPress={() => showDialog()}
-            />
-          </>
-        ) : (
-          <View style={styles.comingSoon}>
-            <Text>Fitur manajemen pelanggan akan segera hadir</Text>
-          </View>
-        )}
+          <Dialog visible={showUserLogs} onDismiss={() => setShowUserLogs(false)}>
+            <Dialog.Title>Aktivitas Pengguna</Dialog.Title>
+            <Dialog.Content>
+              <DataTable>
+                <DataTable.Header>
+                  <DataTable.Title>Waktu</DataTable.Title>
+                  <DataTable.Title>Aktivitas</DataTable.Title>
+                </DataTable.Header>
+
+                <DataTable.Row>
+                  <DataTable.Cell>Coming soon...</DataTable.Cell>
+                  <DataTable.Cell>Fitur log aktivitas akan segera hadir</DataTable.Cell>
+                </DataTable.Row>
+              </DataTable>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setShowUserLogs(false)}>Tutup</Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
+
+        <FAB
+          style={styles.fab}
+          icon="plus"
+          onPress={() => showDialog()}
+        />
       </View>
     </AccessControl>
   );
@@ -271,32 +415,63 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  tabs: {
-    margin: 10,
-  },
   searchbar: {
     margin: 10,
     elevation: 2,
   },
-  rightContent: {
+  listContainer: {
+    padding: 10,
+  },
+  userCard: {
+    marginBottom: 10,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  userHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  userInfo: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  },
+  userActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  divider: {
+    marginVertical: 10,
+  },
+  permissionsContainer: {
+    marginTop: 10,
+  },
+  permissionsTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  permissionsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  permission: {
+    fontSize: 12,
+    color: '#666',
+  },
+  input: {
+    marginBottom: 10,
+    backgroundColor: 'white',
+  },
+  roleButtons: {
+    marginTop: 10,
   },
   fab: {
     position: 'absolute',
     margin: 16,
     right: 0,
     bottom: 0,
-  },
-  input: {
-    marginBottom: 10,
-  },
-  roleButtons: {
-    marginTop: 10,
-  },
-  comingSoon: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 }); 

@@ -184,7 +184,17 @@ export default function TransactionScreen() {
           <View style={styles.productInfo}>
             <Text style={styles.productName}>{item.name}</Text>
             <Text style={styles.priceText}>Rp {item.price.toLocaleString()}</Text>
-            <Chip icon="package-variant" style={styles.stockChip}>
+            <Chip 
+              icon="package-variant" 
+              style={[
+                styles.stockChip, 
+                {backgroundColor: item.stock < 5 ? '#ffebee' : '#e8f5e9'}
+              ]}
+              textStyle={{
+                color: item.stock < 5 ? '#c62828' : '#2e7d32',
+                fontSize: 12
+              }}
+            >
               Stok: {item.stock}
             </Chip>
           </View>
@@ -192,9 +202,11 @@ export default function TransactionScreen() {
             mode="contained"
             onPress={() => addToCart(item)}
             style={styles.addButton}
+            labelStyle={styles.addButtonLabel}
             disabled={item.stock < 1}
+            compact
           >
-            Tambah
+            + Tambah
           </Button>
         </View>
       </Surface>
@@ -229,45 +241,48 @@ export default function TransactionScreen() {
       </View>
 
       <Surface style={styles.cart} elevation={4}>
-        <Title style={styles.cartTitle}>Keranjang</Title>
+        <Title style={styles.cartTitle}>Keranjang Belanja</Title>
         <ScrollView style={styles.cartItems}>
           {cart.map(item => (
             <Card key={item.id} style={styles.cartItem}>
               <Card.Content>
                 <View style={styles.cartItemHeader}>
-                  <Text style={styles.cartItemName}>{item.name}</Text>
-                  <Text style={styles.cartItemPrice}>
-                    Rp {item.price.toLocaleString()}
-                  </Text>
-                </View>
-                <View style={styles.cartItemActions}>
-                  <View style={styles.quantityControl}>
-                    <IconButton
-                      icon="minus"
-                      mode="contained"
-                      size={20}
-                      onPress={() => updateQuantity(item.id, item.quantity - 1)}
-                    />
-                    <Text style={styles.quantityText}>{item.quantity}</Text>
-                    <IconButton
-                      icon="plus"
-                      mode="contained"
-                      size={20}
-                      onPress={() => updateQuantity(item.id, item.quantity + 1)}
-                    />
+                  <View style={styles.cartItemInfo}>
+                    <Text style={styles.cartItemName}>{item.name}</Text>
+                    <Text style={styles.cartItemPrice}>
+                      Rp {item.price.toLocaleString()}
+                    </Text>
                   </View>
                   <IconButton
                     icon="delete"
                     mode="contained"
                     containerColor="#FF5252"
                     iconColor="white"
-                    size={20}
+                    size={16}
+                    style={styles.deleteButton}
                     onPress={() => removeFromCart(item.id)}
                   />
                 </View>
-                <Text style={styles.subtotalText}>
-                  Subtotal: Rp {(item.quantity * item.price).toLocaleString()}
-                </Text>
+                <View style={styles.cartItemActions}>
+                  <View style={styles.quantityControl}>
+                    <IconButton
+                      icon="minus"
+                      mode="contained"
+                      size={16}
+                      onPress={() => updateQuantity(item.id, item.quantity - 1)}
+                    />
+                    <Text style={styles.quantityText}>{item.quantity}</Text>
+                    <IconButton
+                      icon="plus"
+                      mode="contained"
+                      size={16}
+                      onPress={() => updateQuantity(item.id, item.quantity + 1)}
+                    />
+                  </View>
+                  <Text style={styles.subtotalText}>
+                    Subtotal: Rp {(item.quantity * item.price).toLocaleString()}
+                  </Text>
+                </View>
               </Card.Content>
             </Card>
           ))}
@@ -276,7 +291,7 @@ export default function TransactionScreen() {
         <Divider style={styles.divider} />
         
         <View style={styles.total}>
-          <Title>Total</Title>
+          <Title>Total Pembayaran</Title>
           <Title style={styles.totalAmount}>
             Rp {calculateTotal().toLocaleString()}
           </Title>
@@ -287,8 +302,9 @@ export default function TransactionScreen() {
           onPress={() => setPaymentVisible(true)}
           disabled={cart.length === 0}
           style={styles.payButton}
+          labelStyle={styles.payButtonLabel}
         >
-          Bayar
+          Proses Pembayaran
         </Button>
       </Surface>
 
@@ -375,45 +391,52 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   productCard: {
-    marginBottom: 10,
-    borderRadius: 10,
+    marginBottom: 8,
+    borderRadius: 8,
     overflow: 'hidden',
   },
   productContent: {
-    padding: 16,
+    padding: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   productInfo: {
     flex: 1,
+    gap: 4,
   },
   productName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
-    marginBottom: 4,
   },
   priceText: {
     fontSize: 14,
     color: '#2196F3',
-    marginBottom: 4,
+    fontWeight: '500',
   },
   stockChip: {
     alignSelf: 'flex-start',
+    height: 24,
   },
   addButton: {
-    marginLeft: 10,
+    marginLeft: 8,
+    height: 32,
+    width: 85,
+  },
+  addButtonLabel: {
+    fontSize: 12,
+    margin: 0,
   },
   cart: {
     flex: 2,
-    padding: 10,
+    padding: 12,
     margin: 10,
     borderRadius: 10,
+    backgroundColor: 'white',
   },
   cartTitle: {
-    marginBottom: 10,
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    marginBottom: 12,
   },
   cartItems: {
     flex: 1,
@@ -425,53 +448,65 @@ const styles = StyleSheet.create({
   cartItemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    alignItems: 'flex-start',
+  },
+  cartItemInfo: {
+    flex: 1,
   },
   cartItemName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
+    marginBottom: 2,
   },
   cartItemPrice: {
+    fontSize: 13,
     color: '#2196F3',
   },
+  deleteButton: {
+    margin: 0,
+  },
   cartItemActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'column',
+    gap: 8,
     marginTop: 8,
   },
   quantityControl: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F5F5F5',
-    borderRadius: 20,
-    padding: 4,
+    borderRadius: 16,
+    padding: 2,
+    alignSelf: 'flex-start',
   },
   quantityText: {
-    marginHorizontal: 12,
-    fontSize: 16,
+    marginHorizontal: 8,
+    fontSize: 14,
   },
   subtotalText: {
-    marginTop: 8,
-    fontSize: 14,
+    fontSize: 13,
     color: '#666',
+    fontStyle: 'italic',
   },
   divider: {
-    marginVertical: 10,
+    marginVertical: 12,
   },
   total: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginVertical: 10,
+    marginVertical: 12,
   },
   totalAmount: {
     color: '#2196F3',
+    fontSize: 20,
   },
   payButton: {
-    marginTop: 10,
-    borderRadius: 30,
+    marginTop: 8,
+    borderRadius: 8,
+    height: 45,
+  },
+  payButtonLabel: {
+    fontSize: 16,
   },
   paymentInput: {
     marginBottom: 10,

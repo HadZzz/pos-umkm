@@ -195,7 +195,7 @@ export default function ProductsScreen() {
               >
                 {item.category || 'Lainnya'}
               </Chip>
-              <Text style={styles.stockText}>Stok: {item.stock}</Text>
+              <Text style={styles.stockText}>Stok Tersedia: {item.stock}</Text>
             </View>
           </View>
           <View style={styles.productActions}>
@@ -208,7 +208,7 @@ export default function ProductsScreen() {
                 mode="contained" 
                 containerColor="#2196F3"
                 iconColor="white"
-                size={20}
+                size={16}
                 onPress={() => showDialog(item)}
               />
               <IconButton 
@@ -216,7 +216,7 @@ export default function ProductsScreen() {
                 mode="contained"
                 containerColor="#FF5252"
                 iconColor="white"
-                size={20}
+                size={16}
                 onPress={() => handleDeleteProduct(item.id)}
               />
             </View>
@@ -346,12 +346,12 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   productCard: {
-    marginBottom: 10,
-    borderRadius: 10,
+    marginBottom: 8,
+    borderRadius: 8,
     overflow: 'hidden',
   },
   productContent: {
-    padding: 16,
+    padding: 12,
   },
   productInfo: {
     flex: 1,
@@ -359,33 +359,40 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   productDetails: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
+    flexWrap: 'wrap',
+    gap: 8,
   },
   categoryChip: {
-    marginRight: 8,
+    marginRight: 0,
   },
   stockText: {
     color: '#666',
+    backgroundColor: '#f5f5f5',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+    fontSize: 13,
   },
   productActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 6,
   },
   priceText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#2196F3',
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 4,
   },
   fab: {
     position: 'absolute',

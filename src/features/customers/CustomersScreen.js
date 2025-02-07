@@ -17,6 +17,7 @@ import {
   Card,
   Title,
   Paragraph,
+  DataTable,
 } from 'react-native-paper';
 import {
   getCustomers,
@@ -25,6 +26,50 @@ import {
   deleteCustomer,
   getCustomerTransactions,
 } from '../../utils/database';
+
+const MEMBERSHIP_LEVELS = [
+  {
+    level: 'regular',
+    minSpent: 0,
+    pointMultiplier: 1,
+    discount: 0,
+  },
+  {
+    level: 'silver',
+    minSpent: 1000000,
+    pointMultiplier: 1.2,
+    discount: 5,
+  },
+  {
+    level: 'gold',
+    minSpent: 5000000,
+    pointMultiplier: 1.5,
+    discount: 10,
+  },
+  {
+    level: 'platinum',
+    minSpent: 10000000,
+    pointMultiplier: 2,
+    discount: 15,
+  },
+];
+
+const getMembershipLevel = (totalSpent) => {
+  return MEMBERSHIP_LEVELS
+    .slice()
+    .reverse()
+    .find(level => totalSpent >= level.minSpent) || MEMBERSHIP_LEVELS[0];
+};
+
+const getMembershipColor = (level) => {
+  const colors = {
+    regular: '#757575',
+    silver: '#9E9E9E',
+    gold: '#FFC107',
+    platinum: '#7B1FA2',
+  };
+  return colors[level] || colors.regular;
+};
 
 export const CustomersScreen = () => {
   const [customers, setCustomers] = useState([]);
@@ -41,6 +86,7 @@ export const CustomersScreen = () => {
     email: '',
     address: '',
   });
+  const [showMembershipInfo, setShowMembershipInfo] = useState(false);
 
   useEffect(() => {
     loadCustomers();
@@ -164,77 +210,100 @@ export const CustomersScreen = () => {
     );
   };
 
-  const renderCustomerItem = ({ item }) => (
-    <Animated.View
-      style={{
-        opacity: fadeAnim,
-        transform: [{
-          translateY: fadeAnim.interpolate({
-            inputRange: [0, 1],
-            outputRange: [50, 0]
-          })
-        }]
-      }}
-    >
-      <Surface style={styles.customerCard} elevation={2}>
-        <Card>
-          <Card.Content>
-            <View style={styles.customerHeader}>
-              <View>
-                <Title>{item.name}</Title>
-                {item.phone && (
-                  <Paragraph style={styles.contactInfo}>
-                    📱 {item.phone}
-                  </Paragraph>
-                )}
-                {item.email && (
-                  <Paragraph style={styles.contactInfo}>
-                    ✉️ {item.email}
-                  </Paragraph>
-                )}
+  const renderCustomerItem = ({ item }) => {
+    const membership = getMembershipLevel(item.total_spent || 0);
+    
+    return (
+      <Animated.View
+        style={{
+          opacity: fadeAnim,
+          transform: [{
+            translateY: fadeAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [50, 0]
+            })
+          }]
+        }}
+      >
+        <Surface style={styles.customerCard} elevation={2}>
+          <Card>
+            <Card.Content>
+              <View style={styles.customerHeader}>
+                <View>
+                  <Title>{item.name}</Title>
+                  {item.phone && (
+                    <Paragraph style={styles.contactInfo}>
+                      📱 {item.phone}
+                    </Paragraph>
+                  )}
+                  {item.email && (
+                    <Paragraph style={styles.contactInfo}>
+                      ✉️ {item.email}
+                    </Paragraph>
+                  )}
+                </View>
+                <View style={styles.membershipInfo}>
+                  <Chip
+                    icon="crown"
+                    style={[
+                      styles.membershipChip,
+                      { backgroundColor: getMembershipColor(membership.level) }
+                    ]}
+                    textStyle={{ color: 'white' }}
+                    onPress={() => {
+                      setSelectedCustomer(item);
+                      setShowMembershipInfo(true);
+                    }}
+                  >
+                    {membership.level.toUpperCase()}
+                  </Chip>
+                  <Chip icon="star" style={styles.pointsChip}>
+                    {item.points || 0} Poin
+                  </Chip>
+                </View>
               </View>
-              <Chip icon="star" style={styles.pointsChip}>
-                {item.points || 0} Poin
-              </Chip>
-            </View>
-            
-            <View style={styles.statsContainer}>
-              <Chip icon="shopping" style={styles.statsChip}>
-                {item.transaction_count || 0} Transaksi
-              </Chip>
-              <Chip icon="cash" style={styles.statsChip}>
-                Total: Rp {(item.total_spent || 0).toLocaleString()}
-              </Chip>
-            </View>
+              
+              <View style={styles.statsContainer}>
+                <Chip icon="shopping" style={styles.statsChip}>
+                  {item.transaction_count || 0} Transaksi
+                </Chip>
+                <Chip icon="cash" style={styles.statsChip}>
+                  Total: Rp {(item.total_spent || 0).toLocaleString()}
+                </Chip>
+                <Chip icon="percent" style={styles.statsChip}>
+                  Diskon: {membership.discount}%
+                </Chip>
+              </View>
 
-            <View style={styles.actionButtons}>
-              <Button
-                mode="contained-tonal"
-                onPress={() => handleViewTransactions(item)}
-                style={styles.actionButton}
-              >
-                Riwayat
-              </Button>
-              <Button
-                mode="contained-tonal"
-                onPress={() => showDialog(item)}
-                style={styles.actionButton}
-              >
-                Edit
-              </Button>
-              <Button
-                mode="contained-tonal"
-                onPress={() => handleDeleteCustomer(item)}
-                style={[styles.actionButton, styles.deleteButton]}
-              >
-                Hapus
-              </Button>
-            </View>
-          </Card.Content>
-        </Card>
-      </Surface>
-    </Animated.View>
-  );
+              <View style={styles.actionButtons}>
+                <Button
+                  mode="contained-tonal"
+                  onPress={() => handleViewTransactions(item)}
+                  style={styles.actionButton}
+                >
+                  Riwayat
+                </Button>
+                <Button
+                  mode="contained-tonal"
+                  onPress={() => showDialog(item)}
+                  style={styles.actionButton}
+                >
+                  Edit
+                </Button>
+                <Button
+                  mode="contained-tonal"
+                  onPress={() => handleDeleteCustomer(item)}
+                  style={[styles.actionButton, styles.deleteButton]}
+                >
+                  Hapus
+                </Button>
+              </View>
+            </Card.Content>
+          </Card>
+        </Surface>
+      </Animated.View>
+    );
+  };
 
   if (loading) {
     return (
@@ -340,6 +409,49 @@ export const CustomersScreen = () => {
             <Button onPress={() => setShowTransactions(false)}>Tutup</Button>
           </Dialog.Actions>
         </Dialog>
+
+        <Dialog visible={showMembershipInfo} onDismiss={() => setShowMembershipInfo(false)}>
+          <Dialog.Title>Informasi Membership</Dialog.Title>
+          <Dialog.Content>
+            <DataTable>
+              <DataTable.Header>
+                <DataTable.Title>Level</DataTable.Title>
+                <DataTable.Title numeric>Min. Transaksi</DataTable.Title>
+                <DataTable.Title numeric>Diskon</DataTable.Title>
+                <DataTable.Title numeric>Poin</DataTable.Title>
+              </DataTable.Header>
+
+              {MEMBERSHIP_LEVELS.map((level) => (
+                <DataTable.Row key={level.level}>
+                  <DataTable.Cell>{level.level.toUpperCase()}</DataTable.Cell>
+                  <DataTable.Cell numeric>
+                    Rp {level.minSpent.toLocaleString()}
+                  </DataTable.Cell>
+                  <DataTable.Cell numeric>{level.discount}%</DataTable.Cell>
+                  <DataTable.Cell numeric>x{level.pointMultiplier}</DataTable.Cell>
+                </DataTable.Row>
+              ))}
+            </DataTable>
+
+            {selectedCustomer && (
+              <View style={styles.currentMembershipInfo}>
+                <Title>Status Membership Saat Ini</Title>
+                <Text>
+                  Total Transaksi: Rp {(selectedCustomer.total_spent || 0).toLocaleString()}
+                </Text>
+                <Text>
+                  Poin: {selectedCustomer.points || 0} poin
+                </Text>
+                <Text>
+                  Level: {getMembershipLevel(selectedCustomer.total_spent || 0).level.toUpperCase()}
+                </Text>
+              </View>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowMembershipInfo(false)}>Tutup</Button>
+          </Dialog.Actions>
+        </Dialog>
       </Portal>
 
       <FAB
@@ -418,5 +530,17 @@ const styles = StyleSheet.create({
   },
   transactionPoints: {
     alignItems: 'flex-end',
+  },
+  membershipInfo: {
+    alignItems: 'flex-end',
+  },
+  membershipChip: {
+    marginBottom: 5,
+  },
+  currentMembershipInfo: {
+    marginTop: 20,
+    padding: 10,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 5,
   },
 }); 
