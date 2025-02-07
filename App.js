@@ -10,6 +10,7 @@ import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import ProductsScreen from './src/screens/ProductsScreen';
 import TransactionScreen from './src/screens/TransactionScreen';
+import ReportsScreen from './src/screens/ReportsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -69,6 +70,11 @@ export default function App() {
               name="Transaction" 
               component={TransactionScreen}
               options={{ title: 'Transaksi Baru' }}
+            />
+            <Stack.Screen 
+              name="Reports" 
+              component={ReportsScreen}
+              options={{ title: 'Laporan Penjualan' }}
             />
           </Stack.Navigator>
         </NavigationContainer>
