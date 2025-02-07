@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native-paper';
 import { getTransactions, getTransactionDetails } from '../utils/database';
+import { getUserData } from '../utils/storage';
 
 export default function ReportsScreen() {
   const [loading, setLoading] = useState(true);
@@ -17,17 +18,33 @@ export default function ReportsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [transactionDetails, setTransactionDetails] = useState([]);
+  const [userData, setUserData] = useState(null);
 
   useEffect(() => {
-    loadTransactions();
+    loadData();
   }, []);
 
-  const loadTransactions = async () => {
+  const loadData = async () => {
     try {
-      const data = await getTransactions();
-      setTransactions(data);
+      const [transactionsData, user] = await Promise.all([
+        getTransactions(),
+        getUserData()
+      ]);
+      
+      // Jika kasir, hanya tampilkan transaksi hari ini
+      if (user.role === 'cashier') {
+        const today = new Date().toISOString().split('T')[0];
+        const filteredTransactions = transactionsData.filter(t => 
+          t.date.startsWith(today)
+        );
+        setTransactions(filteredTransactions);
+      } else {
+        setTransactions(transactionsData);
+      }
+      
+      setUserData(user);
     } catch (error) {
-      console.error('Error loading transactions:', error);
+      console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
@@ -67,7 +84,9 @@ export default function ReportsScreen() {
       <View style={styles.summarySection}>
         <Card style={styles.summaryCard}>
           <Card.Content>
-            <Title style={styles.summaryTitle}>Total Penjualan</Title>
+            <Title style={styles.summaryTitle}>
+              {userData?.role === 'cashier' ? 'Total Penjualan Hari Ini' : 'Total Semua Penjualan'}
+            </Title>
             <View style={styles.amountContainer}>
               <Paragraph style={styles.totalAmount}>
                 Rp {calculateTotalSales().toLocaleString()}

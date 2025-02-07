@@ -5,6 +5,33 @@ const db = SQLite.openDatabase('pos_umkm.db');
 export const initDatabase = () => {
   return new Promise((resolve, reject) => {
     db.transaction(tx => {
+      // Tabel Users
+      tx.executeSql(
+        `CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          username TEXT UNIQUE NOT NULL,
+          password TEXT NOT NULL,
+          name TEXT NOT NULL,
+          role TEXT NOT NULL,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )`,
+        [],
+        () => {
+          console.log('Users table created successfully');
+          // Insert default admin user if not exists
+          tx.executeSql(
+            `INSERT OR IGNORE INTO users (username, password, name, role) 
+             VALUES (?, ?, ?, ?)`,
+            ['admin', 'admin123', 'Administrator', 'admin'],
+            () => console.log('Default admin user created')
+          );
+        },
+        (_, error) => {
+          console.error('Error creating users table:', error);
+          reject(error);
+        }
+      );
+
       // Tabel Produk
       tx.executeSql(
         `CREATE TABLE IF NOT EXISTS products (
@@ -32,7 +59,9 @@ export const initDatabase = () => {
           total REAL NOT NULL,
           payment_amount REAL NOT NULL,
           payment_method TEXT,
-          customer_name TEXT
+          customer_name TEXT,
+          cashier_id INTEGER,
+          FOREIGN KEY (cashier_id) REFERENCES users (id)
         )`,
         [],
         () => {
@@ -64,6 +93,87 @@ export const initDatabase = () => {
           console.error('Error creating transaction items table:', error);
           reject(error);
         }
+      );
+    });
+  });
+};
+
+// User management functions
+export const getUsers = () => {
+  return new Promise((resolve, reject) => {
+    db.transaction(tx => {
+      tx.executeSql(
+        'SELECT id, username, name, role, created_at FROM users',
+        [],
+        (_, { rows: { _array } }) => resolve(_array),
+        (_, error) => reject(error)
+      );
+    });
+  });
+};
+
+export const addUser = (user) => {
+  return new Promise((resolve, reject) => {
+    db.transaction(tx => {
+      tx.executeSql(
+        'INSERT INTO users (username, password, name, role) VALUES (?, ?, ?, ?)',
+        [user.username, user.password, user.name, user.role],
+        (_, { insertId }) => resolve(insertId),
+        (_, error) => reject(error)
+      );
+    });
+  });
+};
+
+export const updateUser = (user) => {
+  return new Promise((resolve, reject) => {
+    db.transaction(tx => {
+      if (user.password) {
+        tx.executeSql(
+          'UPDATE users SET name = ?, role = ?, password = ? WHERE id = ?',
+          [user.name, user.role, user.password, user.id],
+          () => resolve(),
+          (_, error) => reject(error)
+        );
+      } else {
+        tx.executeSql(
+          'UPDATE users SET name = ?, role = ? WHERE id = ?',
+          [user.name, user.role, user.id],
+          () => resolve(),
+          (_, error) => reject(error)
+        );
+      }
+    });
+  });
+};
+
+export const deleteUser = (id) => {
+  return new Promise((resolve, reject) => {
+    db.transaction(tx => {
+      tx.executeSql(
+        'DELETE FROM users WHERE id = ? AND username != ?',
+        [id, 'admin'],
+        () => resolve(),
+        (_, error) => reject(error)
+      );
+    });
+  });
+};
+
+export const authenticateUser = (username, password) => {
+  return new Promise((resolve, reject) => {
+    db.transaction(tx => {
+      tx.executeSql(
+        'SELECT id, username, name, role FROM users WHERE username = ? AND password = ?',
+        [username, password],
+        (_, { rows: { _array } }) => {
+          if (_array.length > 0) {
+            resolve(_array[0]);
+          } else {
+            resolve(null);
+          }
+        },
+        (_, error) => reject(error)
       );
     });
   });
@@ -127,14 +237,15 @@ export const addTransaction = (transaction, items) => {
   return new Promise((resolve, reject) => {
     db.transaction(tx => {
       tx.executeSql(
-        `INSERT INTO transactions (date, total, payment_amount, payment_method, customer_name)
-         VALUES (?, ?, ?, ?, ?)`,
+        `INSERT INTO transactions (date, total, payment_amount, payment_method, customer_name, cashier_id)
+         VALUES (?, ?, ?, ?, ?, ?)`,
         [
           transaction.date,
           transaction.total,
           transaction.payment_amount,
           transaction.payment_method,
-          transaction.customer_name
+          transaction.customer_name,
+          transaction.cashier_id
         ],
         (_, { insertId }) => {
           const itemPromises = items.map(item => {
@@ -191,4 +302,4 @@ export const getTransactionDetails = (transactionId) => {
       );
     });
   });
-}; 
+};

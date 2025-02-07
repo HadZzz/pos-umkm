@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Provider as PaperProvider, DefaultTheme } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { initDatabase } from './src/utils/database';
+import { View, StyleSheet, Image } from 'react-native';
 
 // Screens
 import LoginScreen from './src/screens/LoginScreen';
@@ -11,7 +12,7 @@ import HomeScreen from './src/screens/HomeScreen';
 import ProductsScreen from './src/screens/ProductsScreen';
 import TransactionScreen from './src/screens/TransactionScreen';
 import ReportsScreen from './src/screens/ReportsScreen';
-import CustomersScreen from './src/screens/CustomersScreen';
+import UsersScreen from './src/screens/UsersScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -26,18 +27,34 @@ const theme = {
 };
 
 export default function App() {
+  const [appIsReady, setAppIsReady] = useState(false);
+
   useEffect(() => {
-    const setupDatabase = async () => {
+    async function prepare() {
       try {
         await initDatabase();
-        console.log('Database initialized successfully');
-      } catch (error) {
-        console.error('Error initializing database:', error);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } catch (e) {
+        console.warn(e);
+      } finally {
+        setAppIsReady(true);
       }
-    };
+    }
 
-    setupDatabase();
+    prepare();
   }, []);
+
+  if (!appIsReady) {
+    return (
+      <View style={styles.splashContainer}>
+        <Image
+          source={require('./assets/splash.png')}
+          style={styles.splashImage}
+          resizeMode="contain"
+        />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaProvider>
@@ -50,6 +67,8 @@ export default function App() {
                 backgroundColor: theme.colors.primary,
               },
               headerTintColor: '#fff',
+              headerShadowVisible: false,
+              animation: 'slide_from_right',
             }}
           >
             <Stack.Screen 
@@ -78,9 +97,9 @@ export default function App() {
               options={{ title: 'Laporan Penjualan' }}
             />
             <Stack.Screen 
-              name="Customers" 
-              component={CustomersScreen}
-              options={{ title: 'Manajemen Pelanggan' }}
+              name="Users" 
+              component={UsersScreen}
+              options={{ title: 'Manajemen Pengguna & Pelanggan' }}
             />
           </Stack.Navigator>
         </NavigationContainer>
@@ -88,3 +107,16 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  splashContainer: {
+    flex: 1,
+    backgroundColor: '#2196F3',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  splashImage: {
+    width: '80%',
+    height: '80%',
+  },
+});

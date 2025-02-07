@@ -10,6 +10,7 @@ import {
   Button, 
   TextInput,
   ActivityIndicator,
+  Menu,
 } from 'react-native-paper';
 import { 
   getProducts, 
@@ -17,6 +18,16 @@ import {
   updateProduct, 
   deleteProduct 
 } from '../utils/database';
+import AccessControl from '../components/AccessControl';
+
+const PRODUCT_CATEGORIES = [
+  'Makanan',
+  'Minuman',
+  'Snack',
+  'Alat Tulis',
+  'Kebutuhan Pokok',
+  'Lainnya',
+];
 
 export default function ProductsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,6 +41,7 @@ export default function ProductsScreen() {
     stock: '',
     category: '',
   });
+  const [categoryMenuVisible, setCategoryMenuVisible] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -77,6 +89,7 @@ export default function ProductsScreen() {
       stock: '',
       category: '',
     });
+    setCategoryMenuVisible(false);
   };
 
   const handleSaveProduct = async () => {
@@ -90,7 +103,7 @@ export default function ProductsScreen() {
         name: newProduct.name,
         price: parseFloat(newProduct.price),
         stock: parseInt(newProduct.stock),
-        category: newProduct.category,
+        category: newProduct.category || 'Lainnya',
       };
 
       if (editingProduct) {
@@ -161,68 +174,88 @@ export default function ProductsScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <Searchbar
-        placeholder="Cari produk..."
-        onChangeText={setSearchQuery}
-        value={searchQuery}
-        style={styles.searchbar}
-      />
+    <AccessControl allowedRoles={['admin']}>
+      <View style={styles.container}>
+        <Searchbar
+          placeholder="Cari produk..."
+          onChangeText={setSearchQuery}
+          value={searchQuery}
+          style={styles.searchbar}
+        />
 
-      <FlatList
-        data={products.filter(product =>
-          product.name.toLowerCase().includes(searchQuery.toLowerCase())
-        )}
-        renderItem={renderItem}
-        keyExtractor={item => item.id.toString()}
-      />
+        <FlatList
+          data={products.filter(product =>
+            product.name.toLowerCase().includes(searchQuery.toLowerCase())
+          )}
+          renderItem={renderItem}
+          keyExtractor={item => item.id.toString()}
+        />
 
-      <Portal>
-        <Dialog visible={visible} onDismiss={hideDialog}>
-          <Dialog.Title>
-            {editingProduct ? 'Edit Produk' : 'Tambah Produk Baru'}
-          </Dialog.Title>
-          <Dialog.Content>
-            <TextInput
-              label="Nama Produk"
-              value={newProduct.name}
-              onChangeText={text => setNewProduct({ ...newProduct, name: text })}
-              style={styles.input}
-            />
-            <TextInput
-              label="Harga"
-              value={newProduct.price}
-              onChangeText={text => setNewProduct({ ...newProduct, price: text })}
-              keyboardType="numeric"
-              style={styles.input}
-            />
-            <TextInput
-              label="Stok"
-              value={newProduct.stock}
-              onChangeText={text => setNewProduct({ ...newProduct, stock: text })}
-              keyboardType="numeric"
-              style={styles.input}
-            />
-            <TextInput
-              label="Kategori"
-              value={newProduct.category}
-              onChangeText={text => setNewProduct({ ...newProduct, category: text })}
-              style={styles.input}
-            />
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={hideDialog}>Batal</Button>
-            <Button onPress={handleSaveProduct}>Simpan</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+        <Portal>
+          <Dialog visible={visible} onDismiss={hideDialog}>
+            <Dialog.Title>
+              {editingProduct ? 'Edit Produk' : 'Tambah Produk Baru'}
+            </Dialog.Title>
+            <Dialog.Content>
+              <TextInput
+                label="Nama Produk"
+                value={newProduct.name}
+                onChangeText={text => setNewProduct({ ...newProduct, name: text })}
+                style={styles.input}
+              />
+              <TextInput
+                label="Harga"
+                value={newProduct.price}
+                onChangeText={text => setNewProduct({ ...newProduct, price: text })}
+                keyboardType="numeric"
+                style={styles.input}
+              />
+              <TextInput
+                label="Stok"
+                value={newProduct.stock}
+                onChangeText={text => setNewProduct({ ...newProduct, stock: text })}
+                keyboardType="numeric"
+                style={styles.input}
+              />
+              <Menu
+                visible={categoryMenuVisible}
+                onDismiss={() => setCategoryMenuVisible(false)}
+                anchor={
+                  <TextInput
+                    label="Kategori"
+                    value={newProduct.category}
+                    onFocus={() => setCategoryMenuVisible(true)}
+                    style={styles.input}
+                    right={<TextInput.Icon icon="menu-down" />}
+                  />
+                }
+              >
+                {PRODUCT_CATEGORIES.map((category) => (
+                  <Menu.Item
+                    key={category}
+                    onPress={() => {
+                      setNewProduct({ ...newProduct, category });
+                      setCategoryMenuVisible(false);
+                    }}
+                    title={category}
+                  />
+                ))}
+              </Menu>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={hideDialog}>Batal</Button>
+              <Button onPress={handleSaveProduct}>Simpan</Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
 
-      <FAB
-        style={styles.fab}
-        icon="plus"
-        onPress={() => showDialog()}
-      />
-    </View>
+        <FAB
+          style={styles.fab}
+          icon="plus"
+          onPress={() => showDialog()}
+        />
+      </View>
+    </AccessControl>
   );
 }
 
