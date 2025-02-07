@@ -68,9 +68,11 @@ export default function ReportsScreen() {
         <Card style={styles.summaryCard}>
           <Card.Content>
             <Title style={styles.summaryTitle}>Total Penjualan</Title>
-            <Paragraph style={styles.totalAmount}>
-              Rp {calculateTotalSales().toLocaleString()}
-            </Paragraph>
+            <View style={styles.amountContainer}>
+              <Paragraph style={styles.totalAmount}>
+                Rp {calculateTotalSales().toLocaleString()}
+              </Paragraph>
+            </View>
             <Paragraph style={styles.transactionCount}>
               Total Transaksi: {transactions.length}
             </Paragraph>
@@ -172,45 +174,52 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   summarySection: {
-    padding: 10,
-    paddingTop: 20,
+    padding: 15,
+    paddingTop: 25,
   },
   summaryCard: {
     elevation: 4,
+    padding: 15,
   },
   summaryTitle: {
     fontSize: 18,
+    marginBottom: 15,
+  },
+  amountContainer: {
+    minHeight: 50,
+    justifyContent: 'center',
   },
   totalAmount: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#2196F3',
-    marginTop: 5,
-    marginBottom: 5,
+    paddingVertical: 15,
   },
   transactionCount: {
     fontSize: 16,
     color: '#666',
+    marginTop: 10,
   },
   transactionsSection: {
     flex: 1,
     backgroundColor: 'white',
     borderRadius: 8,
-    margin: 10,
-    padding: 10,
+    margin: 15,
+    padding: 15,
   },
   sectionTitle: {
-    marginBottom: 10,
+    marginBottom: 15,
   },
   searchbar: {
-    marginBottom: 10,
+    marginBottom: 15,
   },
   detailCard: {
-    margin: 10,
+    margin: 15,
     elevation: 4,
   },
   totalText: {
-    marginTop: 10,
+    marginTop: 15,
     textAlign: 'right',
+    fontSize: 20,
   },
 }); 

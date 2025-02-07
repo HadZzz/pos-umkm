@@ -59,6 +59,10 @@ export const getUserData = async () => {
   return await getData(STORAGE_KEYS.USER_DATA);
 };
 
+export const removeUserData = async () => {
+  return await removeData(STORAGE_KEYS.USER_DATA);
+};
+
 // App settings storage functions
 export const storeSettings = async (settings) => {
   return await storeData(STORAGE_KEYS.SETTINGS, settings);
