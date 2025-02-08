@@ -2,6 +2,28 @@ import * as SQLite from 'expo-sqlite';
 
 const db = SQLite.openDatabase('pos_umkm.db');
 
+export const resetDatabase = () => {
+  return new Promise((resolve, reject) => {
+    db.transaction(tx => {
+      // Drop existing tables
+      tx.executeSql('DROP TABLE IF EXISTS transaction_items');
+      tx.executeSql('DROP TABLE IF EXISTS transactions');
+      tx.executeSql('DROP TABLE IF EXISTS customer_transactions');
+      tx.executeSql('DROP TABLE IF EXISTS customers');
+      tx.executeSql('DROP TABLE IF EXISTS products');
+      tx.executeSql('DROP TABLE IF EXISTS users');
+    }, (error) => {
+      console.error('Error dropping tables:', error);
+      reject(error);
+    }, () => {
+      console.log('All tables dropped successfully');
+      initDatabase()
+        .then(resolve)
+        .catch(reject);
+    });
+  });
+};
+
 export const initDatabase = () => {
   return new Promise((resolve, reject) => {
     db.transaction(tx => {
@@ -23,7 +45,16 @@ export const initDatabase = () => {
             `INSERT OR IGNORE INTO users (username, password, name, role) 
              VALUES (?, ?, ?, ?)`,
             ['admin', 'admin123', 'Administrator', 'admin'],
-            () => console.log('Default admin user created')
+            () => {
+              console.log('Default admin user created');
+              // Insert default kasir user if not exists
+              tx.executeSql(
+                `INSERT OR IGNORE INTO users (username, password, name, role) 
+                 VALUES (?, ?, ?, ?)`,
+                ['kasir', 'kasir123', 'Kasir', 'kasir'],
+                () => console.log('Default kasir user created')
+              );
+            }
           );
         },
         (_, error) => {
@@ -61,6 +92,7 @@ export const initDatabase = () => {
           payment_method TEXT,
           customer_name TEXT,
           cashier_id INTEGER,
+          cashier_name TEXT,
           FOREIGN KEY (cashier_id) REFERENCES users (id)
         )`,
         [],
@@ -87,7 +119,6 @@ export const initDatabase = () => {
         [],
         () => {
           console.log('Transaction items table created successfully');
-          resolve();
         },
         (_, error) => {
           console.error('Error creating transaction items table:', error);
@@ -134,6 +165,7 @@ export const initDatabase = () => {
         [],
         () => {
           console.log('Customer transactions table created successfully');
+          resolve();
         },
         (_, error) => {
           console.error('Error creating customer transactions table:', error);
@@ -283,15 +315,16 @@ export const addTransaction = (transaction, items) => {
   return new Promise((resolve, reject) => {
     db.transaction(tx => {
       tx.executeSql(
-        `INSERT INTO transactions (date, total, payment_amount, payment_method, customer_name, cashier_id)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO transactions (date, total, payment_amount, payment_method, customer_name, cashier_id, cashier_name)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           transaction.date,
           transaction.total,
           transaction.payment_amount,
           transaction.payment_method,
           transaction.customer_name,
-          transaction.cashier_id
+          transaction.cashier_id,
+          transaction.cashier_name
         ],
         (_, { insertId }) => {
           const itemPromises = items.map(item => {

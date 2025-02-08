@@ -3,7 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Provider as PaperProvider, DefaultTheme } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { initDatabase } from './src/utils/database';
+import { initDatabase, resetDatabase } from './src/utils/database';
 import { View, StyleSheet, Image } from 'react-native';
 
 // Screens
@@ -34,7 +34,9 @@ export default function App() {
   useEffect(() => {
     async function prepare() {
       try {
-        await initDatabase();
+        // Uncomment the line below to reset the database
+        await resetDatabase();
+        // await initDatabase();
         await new Promise(resolve => setTimeout(resolve, 2000));
       } catch (e) {
         console.warn(e);

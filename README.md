@@ -109,4 +109,4 @@ pos-umkm/
 
 ## Lisensi
 
-MIT License 
+MIT License

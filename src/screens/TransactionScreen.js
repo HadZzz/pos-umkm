@@ -130,6 +130,7 @@ export default function TransactionScreen() {
         payment_method: paymentMethod,
         customer_name: customerName || 'Guest',
         cashier_id: userData?.id,
+        cashier_name: userData?.name || 'Unknown',
       };
 
       const items = cart.map(item => ({
@@ -138,7 +139,7 @@ export default function TransactionScreen() {
         price_per_item: item.price,
       }));
 
-      await addTransaction(transaction, items);
+      const transactionId = await addTransaction(transaction, items);
 
       setLastTransaction(transaction);
       setLastTransactionItems(items);
@@ -182,17 +183,19 @@ export default function TransactionScreen() {
       <Surface style={styles.productCard} elevation={2}>
         <View style={styles.productContent}>
           <View style={styles.productInfo}>
-            <Text style={styles.productName}>{item.name}</Text>
+            <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
             <Text style={styles.priceText}>Rp {item.price.toLocaleString()}</Text>
             <Chip 
               icon="package-variant" 
               style={[
                 styles.stockChip, 
-                {backgroundColor: item.stock < 5 ? '#ffebee' : '#e8f5e9'}
+                {backgroundColor: item.stock < 5 ? '#FEE2E2' : '#ECFDF5'}
               ]}
               textStyle={{
-                color: item.stock < 5 ? '#c62828' : '#2e7d32',
-                fontSize: 12
+                color: item.stock < 5 ? '#DC2626' : '#059669',
+                fontSize: 13,
+                lineHeight: 24,
+                fontWeight: '500'
               }}
             >
               Stok: {item.stock}
@@ -204,9 +207,9 @@ export default function TransactionScreen() {
             style={styles.addButton}
             labelStyle={styles.addButtonLabel}
             disabled={item.stock < 1}
-            compact
+            icon="cart-plus"
           >
-            + Tambah
+            Tambah
           </Button>
         </View>
       </Surface>
@@ -223,90 +226,98 @@ export default function TransactionScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.productList}>
-        <Searchbar
-          placeholder="Cari produk..."
-          onChangeText={setSearchQuery}
-          value={searchQuery}
-          style={styles.searchbar}
-        />
-        <FlatList
-          data={products.filter(product =>
-            product.name.toLowerCase().includes(searchQuery.toLowerCase())
-          )}
-          renderItem={renderProductItem}
-          keyExtractor={item => item.id.toString()}
-          contentContainerStyle={styles.productListContainer}
-        />
-      </View>
+      <View style={styles.content}>
+        {/* Area Produk */}
+        <View style={styles.productSection}>
+          <Searchbar
+            placeholder="Cari produk..."
+            onChangeText={setSearchQuery}
+            value={searchQuery}
+            style={styles.searchbar}
+          />
+          <View style={styles.productGrid}>
+            <FlatList
+              data={products.filter(product =>
+                product.name.toLowerCase().includes(searchQuery.toLowerCase())
+              )}
+              renderItem={renderProductItem}
+              keyExtractor={item => item.id.toString()}
+              contentContainerStyle={styles.productListContainer}
+              numColumns={1}
+            />
+          </View>
+        </View>
 
-      <Surface style={styles.cart} elevation={4}>
-        <Title style={styles.cartTitle}>Keranjang Belanja</Title>
-        <ScrollView style={styles.cartItems}>
-          {cart.map(item => (
-            <Card key={item.id} style={styles.cartItem}>
-              <Card.Content>
-                <View style={styles.cartItemHeader}>
-                  <View style={styles.cartItemInfo}>
-                    <Text style={styles.cartItemName}>{item.name}</Text>
+        {/* Keranjang */}
+        <Surface style={styles.cart} elevation={4}>
+          <View style={styles.cartHeader}>
+            <Title style={styles.cartTitle}>Keranjang Belanja</Title>
+            <Text style={styles.cartSubtitle}>{cart.length} item</Text>
+          </View>
+
+          <ScrollView style={styles.cartItems}>
+            {cart.map(item => (
+              <Card key={item.id} style={styles.cartItem}>
+                <Card.Content>
+                  <View style={styles.cartItemHeader}>
+                    <Text style={styles.cartItemName} numberOfLines={2}>{item.name}</Text>
                     <Text style={styles.cartItemPrice}>
                       Rp {item.price.toLocaleString()}
                     </Text>
                   </View>
-                  <IconButton
-                    icon="delete"
-                    mode="contained"
-                    containerColor="#FF5252"
-                    iconColor="white"
-                    size={16}
-                    style={styles.deleteButton}
-                    onPress={() => removeFromCart(item.id)}
-                  />
-                </View>
-                <View style={styles.cartItemActions}>
-                  <View style={styles.quantityControl}>
+                  <View style={styles.cartItemActions}>
+                    <View style={styles.quantityControl}>
+                      <IconButton
+                        icon="minus"
+                        size={20}
+                        onPress={() => updateQuantity(item.id, item.quantity - 1)}
+                      />
+                      <Text style={styles.quantityText}>{item.quantity}</Text>
+                      <IconButton
+                        icon="plus"
+                        size={20}
+                        onPress={() => updateQuantity(item.id, item.quantity + 1)}
+                      />
+                    </View>
                     <IconButton
-                      icon="minus"
+                      icon="delete"
+                      size={20}
                       mode="contained"
-                      size={16}
-                      onPress={() => updateQuantity(item.id, item.quantity - 1)}
-                    />
-                    <Text style={styles.quantityText}>{item.quantity}</Text>
-                    <IconButton
-                      icon="plus"
-                      mode="contained"
-                      size={16}
-                      onPress={() => updateQuantity(item.id, item.quantity + 1)}
+                      containerColor="#FF5252"
+                      iconColor="white"
+                      onPress={() => removeFromCart(item.id)}
                     />
                   </View>
                   <Text style={styles.subtotalText}>
-                    Subtotal: Rp {(item.quantity * item.price).toLocaleString()}
+                    Subtotal: Rp {(item.price * item.quantity).toLocaleString()}
                   </Text>
-                </View>
-              </Card.Content>
-            </Card>
-          ))}
-        </ScrollView>
+                </Card.Content>
+              </Card>
+            ))}
+          </ScrollView>
 
-        <Divider style={styles.divider} />
-        
-        <View style={styles.total}>
-          <Title>Total Pembayaran</Title>
-          <Title style={styles.totalAmount}>
-            Rp {calculateTotal().toLocaleString()}
-          </Title>
-        </View>
-
-        <Button
-          mode="contained"
-          onPress={() => setPaymentVisible(true)}
-          disabled={cart.length === 0}
-          style={styles.payButton}
-          labelStyle={styles.payButtonLabel}
-        >
-          Proses Pembayaran
-        </Button>
-      </Surface>
+          <Divider style={styles.divider} />
+          
+          <View style={styles.cartFooter}>
+            <View style={styles.total}>
+              <Title>Total Pembayaran</Title>
+              <Title style={styles.totalAmount}>
+                Rp {calculateTotal().toLocaleString()}
+              </Title>
+            </View>
+            <Button
+              mode="contained"
+              onPress={() => setPaymentVisible(true)}
+              style={styles.payButton}
+              labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
+              disabled={cart.length === 0}
+              icon="cash-register"
+            >
+              Bayar Sekarang
+            </Button>
+          </View>
+        </Surface>
+      </View>
 
       <Portal>
         <Dialog visible={paymentVisible} onDismiss={() => setPaymentVisible(false)}>
@@ -371,155 +382,187 @@ export default function TransactionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    flexDirection: 'row',
     backgroundColor: '#F5F5F5',
   },
-  loadingContainer: {
+  content: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: 12,
   },
-  productList: {
-    flex: 3,
-    padding: 10,
+  productSection: {
+    flex: 1,
+    maxHeight: '50%', // Membatasi tinggi area produk
   },
   searchbar: {
-    marginBottom: 10,
+    marginBottom: 12,
     elevation: 2,
+    borderRadius: 10,
+  },
+  productGrid: {
+    flex: 1,
   },
   productListContainer: {
-    padding: 5,
+    padding: 8,
   },
   productCard: {
-    marginBottom: 8,
+    flex: 1,
+    margin: 4,
     borderRadius: 8,
     overflow: 'hidden',
+    backgroundColor: 'white',
+    width: '100%', // Gunakan lebar penuh
   },
   productContent: {
     padding: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'row', // Ubah layout menjadi horizontal
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   productInfo: {
     flex: 1,
-    gap: 4,
+    marginRight: 12,
   },
   productName: {
     fontSize: 15,
     fontWeight: 'bold',
+    color: '#1F2937',
+    lineHeight: 20,
+    marginBottom: 4,
   },
   priceText: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#2196F3',
-    fontWeight: '500',
+    fontWeight: '600',
+    marginBottom: 4,
   },
   stockChip: {
     alignSelf: 'flex-start',
-    height: 24,
+    height: 36,
+    paddingHorizontal: 12,
+    paddingVertical: 0,
   },
   addButton: {
-    marginLeft: 8,
-    height: 32,
-    width: 85,
+    borderRadius: 8,
+    width: 100, // Tetapkan lebar tombol
+    height: 36,
   },
   addButtonLabel: {
-    fontSize: 12,
-    margin: 0,
+    fontSize: 14,
   },
   cart: {
-    flex: 2,
-    padding: 12,
-    margin: 10,
-    borderRadius: 10,
+    marginTop: 12,
+    borderRadius: 16,
     backgroundColor: 'white',
+    maxHeight: '48%', // Membatasi tinggi keranjang
+  },
+  cartHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    paddingBottom: 8,
   },
   cartTitle: {
     fontSize: 18,
-    marginBottom: 12,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  cartSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
   },
   cartItems: {
-    flex: 1,
+    paddingHorizontal: 16,
   },
   cartItem: {
     marginBottom: 8,
-    borderRadius: 8,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
   },
   cartItemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-  },
-  cartItemInfo: {
-    flex: 1,
+    marginBottom: 8,
   },
   cartItemName: {
     fontSize: 14,
     fontWeight: '500',
-    marginBottom: 2,
+    color: '#1F2937',
+    flex: 1,
+    marginRight: 8,
   },
   cartItemPrice: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#2196F3',
-  },
-  deleteButton: {
-    margin: 0,
+    fontWeight: '500',
   },
   cartItemActions: {
-    flexDirection: 'column',
-    gap: 8,
-    marginTop: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   quantityControl: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
     padding: 2,
-    alignSelf: 'flex-start',
   },
   quantityText: {
     marginHorizontal: 8,
     fontSize: 14,
+    fontWeight: '500',
+    color: '#1F2937',
+    minWidth: 20,
+    textAlign: 'center',
   },
   subtotalText: {
     fontSize: 13,
-    color: '#666',
-    fontStyle: 'italic',
+    color: '#64748B',
+    fontWeight: '500',
   },
   divider: {
-    marginVertical: 12,
+    marginHorizontal: 16,
+    backgroundColor: '#E2E8F0',
+    height: 1,
+  },
+  cartFooter: {
+    padding: 16,
   },
   total: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginVertical: 12,
+    marginBottom: 12,
   },
   totalAmount: {
     color: '#2196F3',
     fontSize: 20,
+    fontWeight: 'bold',
   },
   payButton: {
-    marginTop: 8,
-    borderRadius: 8,
-    height: 45,
-  },
-  payButtonLabel: {
-    fontSize: 16,
+    borderRadius: 12,
+    height: 48,
   },
   paymentInput: {
-    marginBottom: 10,
+    marginBottom: 12,
     backgroundColor: 'white',
   },
   totalText: {
-    fontSize: 18,
-    marginTop: 15,
+    fontSize: 16,
+    marginTop: 12,
     fontWeight: 'bold',
+    color: '#1F2937',
   },
   changeText: {
-    fontSize: 16,
-    marginTop: 5,
+    fontSize: 15,
+    marginTop: 6,
     color: '#4CAF50',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 }); 
