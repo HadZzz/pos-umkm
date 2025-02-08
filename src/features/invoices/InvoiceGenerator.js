@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -143,8 +143,7 @@ export default function InvoiceGenerator({ transaction, items, customer }) {
     try {
       const html = generateInvoiceHTML(transaction, items, customer);
       await Print.printAsync({
-        html,
-        printerUrl: selectedPrinter?.url
+        html
       });
     } catch (error) {
       console.error('Error printing invoice:', error);
